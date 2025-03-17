@@ -25,6 +25,8 @@ instrument_dump = kite.instruments("NSE")
 instrument_df = pd.DataFrame(instrument_dump)
 instrument_df.to_csv("NSE_Instruments_31122019.csv",index=False)
 
+instrument_df.head()
+
 
 def instrumentLookup(instrument_df,symbol):
     """Looks up instrument token for a given script from instrument dump"""
@@ -41,6 +43,10 @@ def fetchOHLC(ticker,interval,duration):
     data = pd.DataFrame(kite.historical_data(instrument,dt.date.today()-dt.timedelta(duration), dt.date.today(),interval))
     data.set_index("date",inplace=True)
     return data
+
+kite.profile()
+kite.positions()
+kite.margins()
 
 
 ohlc = fetchOHLC("ACC", "5minute", 5)

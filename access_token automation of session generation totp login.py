@@ -4,12 +4,13 @@ Zerodha kiteconnect automated authentication
 
 @author: Mayank Rasu (http://rasuquant.com/wp/)
 """
+
+pip install pyotp
 from kiteconnect import KiteConnect
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 import time
 import os
-pip install pyotp
 from pyotp import TOTP
 
 
@@ -33,12 +34,11 @@ def autologin():
     password.send_keys(key_secret[3])
     driver.find_element(By.XPATH,'/html/body/div[1]/div/div[2]/div[1]/div/div/div[2]/form/div[4]/button').click()
     totp = driver.find_element(By.XPATH,'/html/body/div[1]/div/div[2]/div[1]/div[2]/div/div[2]/form/div[1]/input')
-    #totp = TOTP(key_secret[4])
-    totp_token = TOTP("HUJKPUF7MCBVH5JV2Y645L6JEUVTAUAS")
+    #totp_token = TOTP(key_secret[4])
+    totp_token = TOTP("XNUVGC73R46WCBCMX3YGJKVDCQB2UJWM")
     token = totp_token.now()
     print(token)
     totp.send_keys(token)
-    #driver.find_element(By.XPATH,'/html/body/div[1]/div/div[2]/div[1]/div[2]/div/div[2]/form/div[2]/button').click()
     time.sleep(10)
     request_token=driver.current_url.split('request_token=')[1][:32]
     print("********************************************************")

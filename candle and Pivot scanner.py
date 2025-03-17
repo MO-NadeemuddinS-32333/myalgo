@@ -276,6 +276,10 @@ def candle_pattern(ohlc_df, ohlc_day):
 
 
 ##############################################################################################
+
+tickers = instrument_df
+
+
 tickers = ["ZEEL","WIPRO","VEDL","ULTRACEMCO","UPL","TITAN","TECHM","TATASTEEL",
            "TATAMOTORS","TCS","SUNPHARMA","SBIN","SHREECEM","RELIANCE","POWERGRID",
            "ONGC","NESTLEIND","NTPC","MARUTI","M&M","LT","KOTAKBANK","JSWSTEEL","INFY",
@@ -314,15 +318,33 @@ tickers = ["ZEEL","WIPRO","VEDL","ULTRACEMCO","UPL","TITAN","TECHM","TATASTEEL",
 
 
 def main():
-    for ticker in tickers:
-        try:
-            ohlc = fetchOHLC(ticker, '5minute',5)
-            ohlc_day = fetchOHLC(ticker, 'day',30) 
-            ohlc_day = ohlc_day.iloc[:-1,:]       
-            cp = candle_pattern(ohlc,ohlc_day) 
-            print(ticker, ": ",cp)   
-        except:
-            print("skipping for ",ticker)
+   
+  # Assuming tickers is a list of ticker symbols and you have defined fetchOHLC and candle_pattern functions
+ result_list = []  # List to hold the results
+
+ for ticker in tickers:
+     try:
+         # Fetch OHLC data
+         ohlc = fetchOHLC(ticker, '5minute', 5)
+         ohlc_day = fetchOHLC(ticker, 'day', 30)
+         ohlc_day = ohlc_day.iloc[:-1, :]  # Remove last row (as per your original code)
+
+         # Get the candle pattern
+         cp = candle_pattern(ohlc, ohlc_day)
+
+         # Append the result to the list (ticker and cp value)
+         result_list.append({'Ticker': ticker, 'CandlePattern': cp})
+         print(ticker, ": ", cp)
+
+     except Exception as e:
+         # Handle any errors
+         print(f"Skipping for {ticker}. Error: {e}")
+
+ # Create a DataFrame from the collected results
+ df = pd.DataFrame(result_list)
+
+ # Display the resulting DataFrame
+ print(df) 
         
 # Continuous execution        
 starttime=time.time()
@@ -335,3 +357,9 @@ while time.time() <= timeout:
     except KeyboardInterrupt:
         print('\n\nKeyboard exception received. Exiting.')
         exit()
+        
+        
+        
+       
+        
+        
