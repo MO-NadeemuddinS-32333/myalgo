@@ -327,7 +327,7 @@ def main():
          # Fetch OHLC data
          ohlc = fetchOHLC(ticker, '5minute', 5)
          ohlc_day = fetchOHLC(ticker, 'day', 30)
-         ohlc_day = ohlc_day.iloc[:-1, :]  # Remove last row (as per your original code)
+         ohlc_day = ohlc_day.iloc[:-1, :]  
 
          # Get the candle pattern
          cp = candle_pattern(ohlc, ohlc_day)
@@ -358,7 +358,7 @@ while time.time() <= timeout:
         print('\n\nKeyboard exception received. Exiting.')
         exit()
         
-        
+               
         
        
         

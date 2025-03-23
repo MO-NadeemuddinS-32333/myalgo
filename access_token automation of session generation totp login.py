@@ -35,7 +35,7 @@ def autologin():
     driver.find_element(By.XPATH,'/html/body/div[1]/div/div[2]/div[1]/div/div/div[2]/form/div[4]/button').click()
     totp = driver.find_element(By.XPATH,'/html/body/div[1]/div/div[2]/div[1]/div[2]/div/div[2]/form/div[1]/input')
     #totp_token = TOTP(key_secret[4])
-    totp_token = TOTP("XNUVGC73R46WCBCMX3YGJKVDCQB2UJWM")
+    totp_token = TOTP("V6GJETTOEOWFVKZ6Z3VK3VKACJJE3KOQ")
     token = totp_token.now()
     print(token)
     totp.send_keys(token)
@@ -49,6 +49,7 @@ def autologin():
     driver.quit()
 
 autologin()
+
 
 #generating and storing access token - valid till 6 am the next day
 request_token = open("request_token.txt",'r').read()

@@ -25,6 +25,9 @@ orders = kite.orders()
 # Fetch position details
 positions = kite.positions()
 
+
+
+
 # Fetch holding details
 holdings = kite.holdings()
 
