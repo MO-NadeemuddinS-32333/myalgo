@@ -90,7 +90,7 @@ def placeMarketOrder(symbol,buy_sell,quantity):
             
             
             placeMarketOrder("IDEA","sell", 300)
-            placeOrder("IDEA","sell",300,7.49) 
+            placeOrder("SAMMAANCAP","buy",3,117) 
     
             placeStopOrder("IDEA", "buy", 300, 8.02, 8)
 

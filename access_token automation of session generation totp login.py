@@ -5,7 +5,7 @@ Zerodha kiteconnect automated authentication
 @author: Mayank Rasu (http://rasuquant.com/wp/)
 """
 
-pip install pyotp
+#pip install pyotp
 from kiteconnect import KiteConnect
 from selenium import webdriver
 from selenium.webdriver.common.by import By

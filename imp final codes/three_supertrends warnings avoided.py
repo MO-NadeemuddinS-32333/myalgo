@@ -10,6 +10,7 @@ import datetime as dt
 import pandas as pd
 import numpy as np
 import time
+import warnings
 
 
 cwd = os.chdir("C:\\Users\\USER\\OneDrive\\Desktop\\algo")
@@ -25,9 +26,6 @@ kite.set_access_token(access_token)
 #get dump of all NSE instruments
 instrument_dump = kite.instruments("NSE")
 instrument_df = pd.DataFrame(instrument_dump)
-
-
-instrument_df.to_excel('output.xlsx', index=False)
 
 
 def instrumentLookup(instrument_df,symbol):
@@ -69,99 +67,86 @@ def supertrend(DF,n,m):
     df["L-B"]=df["B-L"]
     ind = df.index
     for i in range(n,len(df)):
-        if df['close'].iloc[i-1]<=df['U-B'].iloc[i-1]:
-            df.loc[ind[i],'U-B']=min(df['B-U'].iloc[i],df['U-B'].iloc[i-1])
+        if df['close'][i-1]<=df['U-B'][i-1]:
+            df.loc[ind[i],'U-B']=min(df['B-U'][i],df['U-B'][i-1])
         else:
-            df.loc[ind[i],'U-B']=df['B-U'].iloc[i]    
+            df.loc[ind[i],'U-B']=df['B-U'][i]    
     for i in range(n,len(df)):
-        if df['close'].iloc[i-1]>=df['L-B'].iloc[i-1]:
-            df.loc[ind[i],'L-B']=max(df['B-L'].iloc[i],df['L-B'].iloc[i-1])
+        if df['close'][i-1]>=df['L-B'][i-1]:
+            df.loc[ind[i],'L-B']=max(df['B-L'][i],df['L-B'][i-1])
         else:
-            df.loc[ind[i],'L-B']=df['B-L'].iloc[i]  
+            df.loc[ind[i],'L-B']=df['B-L'][i]  
     df['Strend']=np.nan
     for test in range(n,len(df)):
-        if df['close'].iloc[test-1]<=df['U-B'].iloc[test-1] and df['close'].iloc[test]>df['U-B'].iloc[test]:
-            df.loc[ind[test],'Strend']=df['L-B'].iloc[test]
+        if df['close'][test-1]<=df['U-B'][test-1] and df['close'][test]>df['U-B'][test]:
+            df.loc[ind[test],'Strend']=df['L-B'][test]
             break
-        if df['close'].iloc[test-1]>=df['L-B'].iloc[test-1] and df['close'].iloc[test]<df['L-B'].iloc[test]:
-            df.loc[ind[test],'Strend']=df['U-B'].iloc[test]
+        if df['close'][test-1]>=df['L-B'][test-1] and df['close'][test]<df['L-B'][test]:
+            df.loc[ind[test],'Strend']=df['U-B'][test]
             break
     for i in range(test+1,len(df)):
-        if df['Strend'].iloc[i-1]==df['U-B'].iloc[i-1] and df['close'].iloc[i]<=df['U-B'].iloc[i]:
-            df.loc[ind[i],'Strend']=df['U-B'].iloc[i]
-        elif  df['Strend'].iloc[i-1]==df['U-B'].iloc[i-1] and df['close'].iloc[i]>=df['U-B'].iloc[i]:
-            df.loc[ind[i],'Strend']=df['L-B'].iloc[i]
-        elif df['Strend'].iloc[i-1]==df['L-B'].iloc[i-1] and df['close'].iloc[i]>=df['L-B'].iloc[i]:
-            df.loc[ind[i],'Strend']=df['L-B'].iloc[i]
-        elif df['Strend'].iloc[i-1]==df['L-B'].iloc[i-1] and df['close'].iloc[i]<=df['L-B'].iloc[i]:
-            df.loc[ind[i],'Strend']=df['U-B'].iloc[i]
+        if df['Strend'][i-1]==df['U-B'][i-1] and df['close'][i]<=df['U-B'][i]:
+            df.loc[ind[i],'Strend']=df['U-B'][i]
+        elif  df['Strend'][i-1]==df['U-B'][i-1] and df['close'][i]>=df['U-B'][i]:
+            df.loc[ind[i],'Strend']=df['L-B'][i]
+        elif df['Strend'][i-1]==df['L-B'][i-1] and df['close'][i]>=df['L-B'][i]:
+            df.loc[ind[i],'Strend']=df['L-B'][i]
+        elif df['Strend'][i-1]==df['L-B'][i-1] and df['close'][i]<=df['L-B'][i]:
+            df.loc[ind[i],'Strend']=df['U-B'][i]
     return df['Strend']
 
 
 def st_dir_refresh(ohlc,ticker):
     """function to check for supertrend reversal"""
     global st_dir
-    if ohlc["st1"].iloc[-1] > ohlc["close"].iloc[-1] and ohlc["st1"].iloc[-2] < ohlc["close"].iloc[-2]:
-        st_dir[ticker].iloc[0] = "red"
-    if ohlc["st2"].iloc[-1] > ohlc["close"].iloc[-1] and ohlc["st2"].iloc[-2] < ohlc["close"].iloc[-2]:
-        st_dir[ticker].iloc[1] = "red"
-    if ohlc["st3"].iloc[-1] > ohlc["close"].iloc[-1] and ohlc["st3"].iloc[-2] < ohlc["close"].iloc[-2]:
-        st_dir[ticker].iloc[2] = "red"
-    if ohlc["st1"].iloc[-1] < ohlc["close"].iloc[-1] and ohlc["st1"].iloc[-2] > ohlc["close"].iloc[-2]:
-        st_dir[ticker].iloc[0] = "green"
-    if ohlc["st2"].iloc[-1] < ohlc["close"].iloc[-1] and ohlc["st2"].iloc[-2] > ohlc["close"].iloc[-2]:
-        st_dir[ticker].iloc[1] = "green"
-    if ohlc["st3"].iloc[-1] < ohlc["close"].iloc[-1] and ohlc["st3"].iloc[-2] > ohlc["close"].iloc[-2]:
-        st_dir[ticker].iloc[2] = "green"
+    if ohlc["st1"][-1] > ohlc["close"][-1] and ohlc["st1"][-2] < ohlc["close"][-2]:
+        st_dir[ticker][0] = "red"
+    if ohlc["st2"][-1] > ohlc["close"][-1] and ohlc["st2"][-2] < ohlc["close"][-2]:
+        st_dir[ticker][1] = "red"
+    if ohlc["st3"][-1] > ohlc["close"][-1] and ohlc["st3"][-2] < ohlc["close"][-2]:
+        st_dir[ticker][2] = "red"
+    if ohlc["st1"][-1] < ohlc["close"][-1] and ohlc["st1"][-2] > ohlc["close"][-2]:
+        st_dir[ticker][0] = "green"
+    if ohlc["st2"][-1] < ohlc["close"][-1] and ohlc["st2"][-2] > ohlc["close"][-2]:
+        st_dir[ticker][1] = "green"
+    if ohlc["st3"][-1] < ohlc["close"][-1] and ohlc["st3"][-2] > ohlc["close"][-2]:
+        st_dir[ticker][2] = "green"
 
 def sl_price(ohlc):
     """function to calculate stop loss based on supertrends"""
     st = ohlc.iloc[-1,[-3,-2,-1]]
-    if st.min() > ohlc["close"].iloc[-1]:
-        sl = (0.6*st.sort_values(ascending = True).iloc[0]) + (0.4*st.sort_values(ascending = True).iloc[1])
-    elif st.max() < ohlc["close"].iloc[-1]:
-        sl = (0.6*st.sort_values(ascending = False).iloc[0]) + (0.4*st.sort_values(ascending = False).iloc[1])
+    if st.min() > ohlc["close"][-1]:
+        sl = (0.6*st.sort_values(ascending = True)[0]) + (0.4*st.sort_values(ascending = True)[1])
+    elif st.max() < ohlc["close"][-1]:
+        sl = (0.6*st.sort_values(ascending = False)[0]) + (0.4*st.sort_values(ascending = False)[1])
     else:
         sl = st.mean()
     return round(sl,1)
 
 def placeSLOrder(symbol,buy_sell,quantity,sl_price):    
-    # Place an intraday stop loss order on NSE - handles market orders converted to limit orders
+    # Place an intraday stop loss order on NSE
     if buy_sell == "buy":
         t_type=kite.TRANSACTION_TYPE_BUY
         t_type_sl=kite.TRANSACTION_TYPE_SELL
     elif buy_sell == "sell":
         t_type=kite.TRANSACTION_TYPE_SELL
         t_type_sl=kite.TRANSACTION_TYPE_BUY
-    market_order = kite.place_order(tradingsymbol=symbol,
+    kite.place_order(tradingsymbol=symbol,
                     exchange=kite.EXCHANGE_NSE,
                     transaction_type=t_type,
                     quantity=quantity,
                     order_type=kite.ORDER_TYPE_MARKET,
                     product=kite.PRODUCT_MIS,
                     variety=kite.VARIETY_REGULAR)
-    a = 0
-    while a < 10:
-        try:
-            order_list = kite.orders()
-            break
-        except:
-            print("can't get orders..retrying")
-            a+=1
-    for order in order_list:
-        if order["order_id"]==market_order:
-            if order["status"]=="COMPLETE":
-                kite.place_order(tradingsymbol=symbol,
-                                exchange=kite.EXCHANGE_NSE,
-                                transaction_type=t_type_sl,
-                                quantity=quantity,
-                                order_type=kite.ORDER_TYPE_SL,
-                                price=sl_price,
-                                trigger_price = sl_price,
-                                product=kite.PRODUCT_MIS,
-                                variety=kite.VARIETY_REGULAR)
-            else:
-                kite.cancel_order(order_id=market_order,variety=kite.VARIETY_REGULAR)
+    kite.place_order(tradingsymbol=symbol,
+                    exchange=kite.EXCHANGE_NSE,
+                    transaction_type=t_type_sl,
+                    quantity=quantity,
+                    order_type=kite.ORDER_TYPE_SL,
+                    price=sl_price,
+                    trigger_price = sl_price,
+                    product=kite.PRODUCT_MIS,
+                    variety=kite.VARIETY_REGULAR)
 
 
 def ModifyOrder(order_id,price):    
@@ -190,6 +175,7 @@ def main(capital):
             b+=1
     
     for ticker in tickers:
+        print("========================================================================")
         print("starting passthrough for.....",ticker)
         try:
             ohlc = fetchOHLC(ticker,"5minute",4)
@@ -197,13 +183,11 @@ def main(capital):
             ohlc["st2"] = supertrend(ohlc,10,3)
             ohlc["st3"] = supertrend(ohlc,11,2)
             st_dir_refresh(ohlc,ticker)
-            quantity = int(capital/ohlc["close"].iloc[-1])
+            quantity = int(capital/ohlc["close"][-1])
             if len(pos_df.columns)==0:
                 if st_dir[ticker] == ["green","green","green"]:
-                    print("order placed for", ticker)
                     placeSLOrder(ticker,"buy",quantity,sl_price(ohlc))
                 if st_dir[ticker] == ["red","red","red"]:
-                    print("order placed for", ticker)
                     placeSLOrder(ticker,"sell",quantity,sl_price(ohlc))
             if len(pos_df.columns)!=0 and ticker not in pos_df["tradingsymbol"].tolist():
                 if st_dir[ticker] == ["green","green","green"]:
@@ -220,49 +204,36 @@ def main(capital):
                     order_id = ord_df.loc[(ord_df['tradingsymbol'] == ticker) & (ord_df['status'].isin(["TRIGGER PENDING","OPEN"]))]["order_id"].values[0]
                     ModifyOrder(order_id,sl_price(ohlc))
         except:
+            print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+            print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
             print("API error for ticker :",ticker)
-            
-            
-            
-def get_pnl():
-    try:
-        # Get all orders - You can also filter by date or symbol
-        orders = kite.orders()
-        # Fetch all trades
-        trades = kite.trades()
-        
-        # Calculate P&L (Profit and Loss)
-        pnl = 0
-        for trade in trades:
-            pnl += trade['realized_profit']
-        
-        # Display the P&L
-        print(f"Total Realized P&L: ₹{pnl}")
-    
-    except Exception as e:
-        print(f"Error fetching P&L: {e}")
-            
+            print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+            print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+
             
 #############################################################################################################
 #############################################################################################################
-tickers = ["PPLPHARMA","ZENSARTECH", "KPIL","SWANENERGY", "OLECTRA", "CASTROLIND", "CENTRALBK", "HFCL", "UCOBANK", "BLS", "IFCI", "TTML", 
-           "REDINGTON", "RBLBANK"] 
+
+tickers = ["SIEMENS", "INDUSINDBK",
+           "AMBUJACEM", "VBL","NTPC", "RECLTD", "UNIONBANK", "BPCL"] 
+
 
 #tickers to track - recommended to use max movers from previous day
 capital = 30000 #position size
-
 st_dir = {} #directory to store super trend status for each ticker
 for ticker in tickers:
     st_dir[ticker] = ["None","None","None"]    
-
+    
+    
+# Suppress FutureWarnings globally
+warnings.simplefilter(action='ignore', category=FutureWarning)
+    
 starttime=time.time()
-timeout = time.time() + 60*60*6  # 60 seconds times 360 meaning 6 hrs
+timeout = time.time() + 60*60*7  # 60 seconds times 360 meaning 6 hrs
 while time.time() <= timeout:
     try:
         main(capital)
         time.sleep(300 - ((time.time() - starttime) % 300.0))
-        MTM = get_pnl()
-
     except KeyboardInterrupt:
         print('\n\nKeyboard exception received. Exiting.')
         exit()        
