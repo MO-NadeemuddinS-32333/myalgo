@@ -35,7 +35,7 @@ def autologin():
     driver.find_element(By.XPATH,'/html/body/div[1]/div/div[2]/div[1]/div/div/div[2]/form/div[4]/button').click()
     totp = driver.find_element(By.XPATH,'/html/body/div[1]/div/div[2]/div[1]/div[2]/div/div[2]/form/div[1]/input')
     #totp_token = TOTP(key_secret[4])
-    totp_token = TOTP("V6GJETTOEOWFVKZ6Z3VK3VKACJJE3KOQ")
+    totp_token = TOTP("3MPQTCB4OQHQOGQPPAXHX3MGDZPFSASP")
     token = totp_token.now()
     print(token)
     totp.send_keys(token)
