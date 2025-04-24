@@ -14,9 +14,6 @@ import warnings
 from datetime import datetime, timedelta
 
 
-
-
-
 cwd = os.chdir("C:\\Users\\USER\\OneDrive\\Desktop\\algo")
 
 
@@ -149,6 +146,7 @@ def placeSLOrder(symbol, buy_sell, quantity, sl_price):
                      order_type=kite.ORDER_TYPE_MARKET,
                      product=kite.PRODUCT_MIS,
                      variety=kite.VARIETY_REGULAR)
+    time.sleep(0.2)  # 200 milliseconds
     kite.place_order(tradingsymbol=symbol,
                      exchange=kite.EXCHANGE_NSE,
                      transaction_type=t_type_sl,
@@ -232,8 +230,7 @@ def main(capital):
 #############################################################################################################
 #############################################################################################################
 
-tickers = ["KFINTECH","KPIL","ZENSARTECH","AARTIIND","CDSL","ATUL","HINDCOPPER","SWANENERGY","ANGELONE","PEL","BLS","BSOFT","CYIENTDLM","KAYNES","DEVYANI","DELHIVERY","RITES","IIFL","RKFORGE","BATAINDIA","PCBL","NH","ZENTEC","PGEL","RADICO","GODFRYPHLP","NAVINFLUOR","TEJASNET"]
-
+tickers = ["SAMHI","NEWGEN","MMTC","WHIRLPOOL","SONACOMS","VIPIND","NATCOPHARM","THANGAMAYL","VAIBHAVGBL","MARKSANS","ELECTCAST","SHILPAMED","BAJAJHIND","TRIVENI","THERMAX","SYNGENE","WAAREEENER","CANFINHOME","NAVA","KFINTECH","RALLIS"]
 
 #tickers to track - recommended to use max movers from previous day
 capital = 30000 #position size
@@ -250,22 +247,10 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 #############################################################################################################
 #############################################################################################################
 
-starttime=time.time()
-timeout = time.time() + 60*60*6  # 60 seconds times 360 meaning 6 hrs
-while time.time() <= timeout:
-    try:
-        main(capital)
-        time.sleep(300 - ((time.time() - starttime) % 300.0))
-    except KeyboardInterrupt:
-        print('\n\nKeyboard exception received. Exiting.')
-        exit()        
-#############################################################################################################
-#############################################################################################################
-
 
 # Wait until 9:15 AM
 now = datetime.now()
-target_time = now.replace(hour=9, minute=15, second=0, microsecond=0)
+target_time = now.replace(hour=10, minute=45, second=0, microsecond=0)
 
 # If it's already past 9:15 AM today, wait until 9:15 AM the next day
 if now > target_time:
