@@ -43,56 +43,54 @@ def fetchOHLC(ticker, interval, duration):
     return data
 
 
-def atr(DF, n):
-    "function to calculate True Range and Average True Range"
-    df = DF.copy()
-    df['H-L'] = abs(df['high']-df['low'])
-    df['H-PC'] = abs(df['high']-df['close'].shift(1))
-    df['L-PC'] = abs(df['low']-df['close'].shift(1))
-    df['TR'] = df[['H-L', 'H-PC', 'L-PC']].max(axis=1, skipna=False)
-    df['ATR'] = df['TR'].ewm(com=n, min_periods=n).mean()
+def atr_sma(df, period):
+    df = df.copy()
+    df['H-L'] = abs(df['high'] - df['low'])
+    df['H-PC'] = abs(df['high'] - df['close'].shift(1))
+    df['L-PC'] = abs(df['low'] - df['close'].shift(1))
+    df['TR'] = df[['H-L', 'H-PC', 'L-PC']].max(axis=1)
+    df['ATR'] = df['TR'].rolling(period).mean()
     return df['ATR']
 
+def supertrend(df, period=7, multiplier=3):
+    df = df.copy()
+    df['ATR'] = atr_sma(df, period)
+    df['HL2'] = (df['high'] + df['low']) / 2
+    df['UpperBand'] = df['HL2'] + (multiplier * df['ATR'])
+    df['LowerBand'] = df['HL2'] - (multiplier * df['ATR'])
 
-def supertrend(DF, n, m):
-    """function to calculate Supertrend given historical candle data
-        n = n day ATR - usually 7 day ATR is used
-        m = multiplier - usually 2 or 3 is used"""
-    df = DF.copy()
-    df['ATR'] = atr(df, n)
-    df["B-U"] = ((df['high']+df['low'])/2) + m*df['ATR']
-    df["B-L"] = ((df['high']+df['low'])/2) - m*df['ATR']
-    df["U-B"] = df["B-U"]
-    df["L-B"] = df["B-L"]
-    ind = df.index
-    for i in range(n, len(df)):
-        if df['close'][i-1] <= df['U-B'][i-1]:
-            df.loc[ind[i], 'U-B'] = min(df['B-U'][i], df['U-B'][i-1])
+    df['UpperBand'] = df['UpperBand'].round(2)
+    df['LowerBand'] = df['LowerBand'].round(2)
+
+    df['Supertrend'] = np.nan
+    df['InUptrend'] = True  # Start with uptrend
+
+    for current in range(1, len(df)):
+        previous = current - 1
+
+        # Carry forward the trend
+        if df['close'][current] > df['UpperBand'][previous]:
+            df.loc[df.index[current], 'InUptrend'] = True
+        elif df['close'][current] < df['LowerBand'][previous]:
+            df.loc[df.index[current], 'InUptrend'] = False
         else:
-            df.loc[ind[i], 'U-B'] = df['B-U'][i]
-    for i in range(n, len(df)):
-        if df['close'][i-1] >= df['L-B'][i-1]:
-            df.loc[ind[i], 'L-B'] = max(df['B-L'][i], df['L-B'][i-1])
+            df.loc[df.index[current], 'InUptrend'] = df['InUptrend'][previous]
+
+            # Adjust bands if needed
+            if df['InUptrend'][current] and df['LowerBand'][current] < df['LowerBand'][previous]:
+                df.loc[df.index[current], 'LowerBand'] = df['LowerBand'][previous]
+
+            if not df['InUptrend'][current] and df['UpperBand'][current] > df['UpperBand'][previous]:
+                df.loc[df.index[current], 'UpperBand'] = df['UpperBand'][previous]
+
+        # Assign Supertrend value
+        if df['InUptrend'][current]:
+            df.loc[df.index[current], 'Supertrend'] = df['LowerBand'][current]
         else:
-            df.loc[ind[i], 'L-B'] = df['B-L'][i]
-    df['Strend'] = np.nan
-    for test in range(n, len(df)):
-        if df['close'][test-1] <= df['U-B'][test-1] and df['close'][test] > df['U-B'][test]:
-            df.loc[ind[test], 'Strend'] = df['L-B'][test]
-            break
-        if df['close'][test-1] >= df['L-B'][test-1] and df['close'][test] < df['L-B'][test]:
-            df.loc[ind[test], 'Strend'] = df['U-B'][test]
-            break
-    for i in range(test+1, len(df)):
-        if df['Strend'][i-1] == df['U-B'][i-1] and df['close'][i] <= df['U-B'][i]:
-            df.loc[ind[i], 'Strend'] = df['U-B'][i]
-        elif df['Strend'][i-1] == df['U-B'][i-1] and df['close'][i] >= df['U-B'][i]:
-            df.loc[ind[i], 'Strend'] = df['L-B'][i]
-        elif df['Strend'][i-1] == df['L-B'][i-1] and df['close'][i] >= df['L-B'][i]:
-            df.loc[ind[i], 'Strend'] = df['L-B'][i]
-        elif df['Strend'][i-1] == df['L-B'][i-1] and df['close'][i] <= df['L-B'][i]:
-            df.loc[ind[i], 'Strend'] = df['U-B'][i]
-    return df['Strend']
+            df.loc[df.index[current], 'Supertrend'] = df['UpperBand'][current]
+
+    return df['Supertrend']
+
 
 
 def st_dir_refresh(ohlc, ticker):
@@ -245,7 +243,7 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 # Wait until 9:15 AM
 now = datetime.now()
-target_time = now.replace(hour=13, minute=45, second=0, microsecond=0)
+target_time = now.replace(hour=13, minute=30, second=00, microsecond=0)
 
 # If it's already past 9:15 AM today, wait until 9:15 AM the next day
 if now > target_time:

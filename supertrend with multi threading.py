@@ -1,9 +1,4 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Mar 27 01:49:03 2025
 
-@author: USER
-"""
 from kiteconnect import KiteConnect
 import os
 import datetime as dt
@@ -13,6 +8,7 @@ import time
 import warnings
 import threading
 import concurrent.futures  # Import concurrent futures for threading
+from datetime import datetime, timedelta
 
 cwd = os.chdir("C:\\Users\\USER\\OneDrive\\Desktop\\algo")
 
@@ -146,6 +142,7 @@ def placeSLOrder(symbol, buy_sell, quantity, sl_price):
                      order_type=kite.ORDER_TYPE_MARKET,
                      product=kite.PRODUCT_MIS,
                      variety=kite.VARIETY_REGULAR)
+    time.sleep(0.5)
     kite.place_order(tradingsymbol=symbol,
                      exchange=kite.EXCHANGE_NSE,
                      transaction_type=t_type_sl,
@@ -183,26 +180,34 @@ def process_ticker(ticker, capital, pos_df, ord_df):
         if len(pos_df.columns) == 0:
             if st_dir[ticker] == ["green", "green", "green"]:
                 placeSLOrder(ticker, "buy", quantity, sl_price(ohlc))
+                print("order placed successfully",ticker)
             if st_dir[ticker] == ["red", "red", "red"]:
                 placeSLOrder(ticker, "sell", quantity, sl_price(ohlc))
+                print("order placed successfully",ticker)
         if len(pos_df.columns) != 0 and ticker not in pos_df["tradingsymbol"].tolist():
             if st_dir[ticker] == ["green", "green", "green"]:
                 placeSLOrder(ticker, "buy", quantity, sl_price(ohlc))
+                print("order placed successfully",ticker)
             if st_dir[ticker] == ["red", "red", "red"]:
                 placeSLOrder(ticker, "sell", quantity, sl_price(ohlc))
+                print("order placed successfully",ticker)
         if len(pos_df.columns) != 0 and ticker in pos_df["tradingsymbol"].tolist():
             if pos_df[pos_df["tradingsymbol"] == ticker]["quantity"].values[0] == 0:
                 if st_dir[ticker] == ["green", "green", "green"]:
                     placeSLOrder(ticker, "buy", quantity, sl_price(ohlc))
+                    print("order placed successfully",ticker)
                 if st_dir[ticker] == ["red", "red", "red"]:
                     placeSLOrder(ticker, "sell", quantity, sl_price(ohlc))
+                    print("order placed successfully",ticker)
             if pos_df[pos_df["tradingsymbol"] == ticker]["quantity"].values[0] != 0:
                 order_id = ord_df.loc[(ord_df['tradingsymbol'] == ticker) & (ord_df['status'].isin(["TRIGGER PENDING", "OPEN"]))]["order_id"].values[0]
                 ModifyOrder(order_id, sl_price(ohlc))
-    except:
+                print("order modified successfully",ticker)
+    except Exception as e:
         print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
         print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
         print("API error for ticker :", ticker)
+        print("Exception message:", str(e), ticker)
         print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
         print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 
@@ -232,8 +237,9 @@ def main(capital):
         concurrent.futures.wait(futures)
 
 
-tickers = ["AEGISLOG", "BEML", "ABREL", "IRFC", "TATAMOTORS",
-           "ADANIGREEN", "ADANIENSOL", "FSL"] 
+
+tickers = ["SAMHI","NEWGEN","MMTC","WHIRLPOOL","SONACOMS","VIPIND","NATCOPHARM","THANGAMAYL","VAIBHAVGBL","MARKSANS","ELECTCAST","SHILPAMED","BAJAJHIND","TRIVENI","THERMAX","SYNGENE","WAAREEENER","CANFINHOME","NAVA","KFINTECH","RALLIS"]
+
 
 # Tickers to track
 capital = 30000  # Position size
@@ -244,12 +250,31 @@ for ticker in tickers:
 # Suppress FutureWarnings globally
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
+
+
+# Wait until 9:15 AM
+now = datetime.now()
+target_time = now.replace(hour=14, minute=30, second=00, microsecond=0)
+
+# If it's already past 9:15 AM today, wait until 9:15 AM the next day
+if now > target_time:
+    target_time += timedelta(days=1)
+
+wait_seconds = (target_time - now).total_seconds()
+print(f"Waiting until {target_time.strftime('%H:%M:%S')} to start...")
+time.sleep(wait_seconds)
+
+# Start loop at 9:15 AM
 starttime = time.time()
-timeout = time.time() + 60 * 60 * 2  # 60 seconds * 360 meaning 6 hrs
+timeout = time.time() + 60 * 60 * 7  # 6 hours
+
 while time.time() <= timeout:
     try:
         main(capital)
-        time.sleep(300 - ((time.time() - starttime) % 300.0))
+        time.sleep(300 - ((time.time() - starttime) % 300.0))  # Run every 5 minutes
     except KeyboardInterrupt:
         print('\n\nKeyboard exception received. Exiting.')
         exit()
+
+
+
