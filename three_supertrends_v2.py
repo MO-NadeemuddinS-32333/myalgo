@@ -10,6 +10,7 @@ import datetime as dt
 import pandas as pd
 import numpy as np
 import time
+import warnings
 
 
 cwd = os.chdir("C:\\Users\\USER\\OneDrive\\Desktop\\algo")
@@ -114,16 +115,23 @@ def st_dir_refresh(ohlc,ticker):
     if ohlc["st3"].iloc[-1] < ohlc["close"].iloc[-1] and ohlc["st3"].iloc[-2] > ohlc["close"].iloc[-2]:
         st_dir[ticker].iloc[2] = "green"
 
-def sl_price(ohlc):
-    """function to calculate stop loss based on supertrends"""
-    st = ohlc.iloc[-1,[-3,-2,-1]]
-    if st.min() > ohlc["close"].iloc[-1]:
-        sl = (0.6*st.sort_values(ascending = True).iloc[0]) + (0.4*st.sort_values(ascending = True).iloc[1])
-    elif st.max() < ohlc["close"].iloc[-1]:
-        sl = (0.6*st.sort_values(ascending = False).iloc[0]) + (0.4*st.sort_values(ascending = False).iloc[1])
-    else:
-        sl = st.mean()
-    return round(sl,1)
+def sl_price(ohlc, buffer=1.0):
+    """Set SL 1x ATR below entry for buy, above for sell"""
+    try:
+        atr_val = ohlc['ATR'].iloc[-1]
+        close = ohlc['close'].iloc[-1]
+        in_uptrend = ohlc['in_uptrend'].iloc[-1]
+
+        if in_uptrend:
+            sl = close - (1.0 * atr_val) - buffer
+        else:
+            sl = close + (1.0 * atr_val) + buffer
+
+        return round(sl, 1)
+    except KeyError as e:
+        print(f"Missing key in OHLC data: {e}")
+        return None
+
 
 def placeSLOrder(symbol,buy_sell,quantity,sl_price):    
     # Place an intraday stop loss order on NSE - handles market orders converted to limit orders
@@ -190,11 +198,12 @@ def main(capital):
             b+=1
     
     for ticker in tickers:
+        print("_____________________________________________________________")
         print("starting passthrough for.....",ticker)
         try:
             ohlc = fetchOHLC(ticker,"5minute",4)
-            ohlc["st1"] = supertrend(ohlc,7,3)
-            ohlc["st2"] = supertrend(ohlc,10,3)
+            ohlc["st1"] = supertrend(ohlc,11,2)
+            ohlc["st2"] = supertrend(ohlc,11,2)
             ohlc["st3"] = supertrend(ohlc,11,2)
             st_dir_refresh(ohlc,ticker)
             quantity = int(capital/ohlc["close"].iloc[-1])
@@ -219,8 +228,11 @@ def main(capital):
                 if pos_df[pos_df["tradingsymbol"]==ticker]["quantity"].values[0] != 0:
                     order_id = ord_df.loc[(ord_df['tradingsymbol'] == ticker) & (ord_df['status'].isin(["TRIGGER PENDING","OPEN"]))]["order_id"].values[0]
                     ModifyOrder(order_id,sl_price(ohlc))
-        except:
+        except Exception as e:
+            print("****************************************************************")
             print("API error for ticker :",ticker)
+            print("Exception message:", str(e), ticker)
+            print("****************************************************************")
             
             
             
@@ -245,8 +257,13 @@ def get_pnl():
             
 #############################################################################################################
 #############################################################################################################
-tickers = ["PPLPHARMA","ZENSARTECH", "KPIL","SWANENERGY", "OLECTRA", "CASTROLIND", "CENTRALBK", "HFCL", "UCOBANK", "BLS", "IFCI", "TTML", 
-           "REDINGTON", "RBLBANK"] 
+tickers = ['AARTIIND', 'LODHA', 'STYLEBAAZA', 'NIITMTS', 'SAILIFE', 'TIPSMUSIC', 'PANACEABIO', 'VMM', 'GUJGASLTD', 'HNGSNGBEES', 'ASAHIINDIA', 'MINDTECK', 'OMINFRAL', 'VBL', 'PNBHOUSING', 'CHAMBLFERT', 'CGCL', 'JSFB', 'SBFC', 'COFORGE', 'PGEL', 'JASH', 'PDSL', 'KAYNES', 'ORIENTELEC', 'PREMEXPLN', 'FOODSIN', 'GRAPHITE', 'SHK', 'NDTV', 'THEMISMED', 'APLLTD', 'ANUHPHR', 'KPEL', 'NUCLEUS', 'UDS', 'BHAGERIA', 'GOODLUCK', 'KIRLOSIND', 'SUVEN', 'PRECWIRE', 'GRINFRA', 'KPIGREEN', 'MODIRUBBER', 'AVANTEL', 'MAZDA', 'DELHIVERY', 'KANPRPLA', 'GILLANDERS', 'RPSGVENT', 'HINDWAREAP', 'INOXGREEN', '20MICRONS', 'SHANKARA', 'SIYSIL', 'DONEAR', 'REPRO', 'TIINDIA', 'GAIL', 'DABUR', 'TORNTPHARM', 'LAURUSLABS', 'VOLTAS', 'BIOCON', 'NTPC', 'HINDUNILVR', 'SUNPHARMA']
+
+    
+# Suppress FutureWarnings globally
+warnings.simplefilter(action='ignore', category=FutureWarning)
+    
+
 
 #tickers to track - recommended to use max movers from previous day
 capital = 30000 #position size

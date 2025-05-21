@@ -1,24 +1,82 @@
-
+#pip install pyotp
 from kiteconnect import KiteConnect
-import os
-import datetime as dt
-import pandas as pd
-import numpy as np
+from selenium import webdriver
+from selenium.webdriver.common.by import By
 import time
+import os
+from pyotp import TOTP
+import tempfile
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 import warnings
 import threading
 import concurrent.futures  # Import concurrent futures for threading
 from datetime import datetime, timedelta
+import datetime as dt
+import pandas as pd
+import numpy as np
 
-cwd = os.chdir("C:\\Users\\USER\\OneDrive\\Desktop\\algo")
+cwd = os.getcwd()
+
+def autologin():
 
 
-# Generate trading session
-access_token = open("access_token.txt", 'r').read()
-key_secret = open("api_key.txt", 'r').read().split()
+        token_path = os.path.join(cwd,'api_key.txt')
+        key_secret = open(token_path,'r').read().split()
+        kite = KiteConnect(api_key=key_secret[0])
+
+        temp_profile = tempfile.mkdtemp()
+        
+        
+        #Set up Chrome options
+        options = Options()
+        options.add_argument('--headless')
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-dev-shm-usage')
+        options.add_argument(f"--user-data-dir={tempfile.mkdtemp()}")
+
+        #Start Chrome service
+        service = Service('/usr/bin/chromedriver')
+        driver = webdriver.Chrome(service=service, options=options)
+        
+        
+        
+        driver.get(kite.login_url())
+        driver.implicitly_wait(10)
+        username = driver.find_element(By.XPATH,'/html/body/div[1]/div/div[2]/div[1]/div/div/div[2]/form/div[1]/input')
+        password = driver.find_element(By.XPATH,'/html/body/div[1]/div/div[2]/div[1]/div/div/div[2]/form/div[2]/input')
+        username.send_keys(key_secret[2])
+        password.send_keys(key_secret[3])
+        driver.find_element(By.XPATH,'/html/body/div[1]/div/div[2]/div[1]/div/div/div[2]/form/div[4]/button').click()
+        totp = driver.find_element(By.XPATH,'/html/body/div[1]/div/div[2]/div[1]/div[2]/div/div[2]/form/div[1]/input')
+        #totp_token = TOTP(key_secret[4])
+        totp_token = TOTP("3MPQTCB4OQHQOGQPPAXHX3MGDZPFSASP")
+        token = totp_token.now()
+        print(token)
+        totp.send_keys(token)
+        time.sleep(10)
+        request_token=driver.current_url.split('request_token=')[1][:32]
+        print("********************************************************")
+        print(request_token)
+        print("********************************************************")
+        with open(os.path.join(cwd,'request_token.txt'), 'w') as the_file:
+            the_file.write(request_token)
+        driver.quit()
+
+autologin()
+
+
+
+#generating and storing access token - valid till 6 am the next day
+request_token = open(os.path.join(cwd,'request_token.txt'),'r').read()
+key_secret = open(os.path.join(cwd,'api_key.txt'),'r').read().split()
 kite = KiteConnect(api_key=key_secret[0])
-kite.set_access_token(access_token)
-
+data = kite.generate_session(request_token, api_secret=key_secret[1])
+with open(os.path.join('access_token.txt'), 'w') as file:
+    file.write(data["access_token"])
+    
+    
+    
 
 # Get dump of all NSE instruments
 instrument_dump = kite.instruments("NSE")
@@ -238,7 +296,7 @@ def main(capital):
 
 
 
-tickers = ["SAMHI","NEWGEN","MMTC","WHIRLPOOL","SONACOMS","VIPIND","NATCOPHARM","THANGAMAYL","VAIBHAVGBL","MARKSANS","ELECTCAST","SHILPAMED","BAJAJHIND","TRIVENI","THERMAX","SYNGENE","WAAREEENER","CANFINHOME","NAVA","KFINTECH","RALLIS"]
+tickers = ["RBLBANK","DCBBANK","PARAS","GRSE","MIDHANI","SONATSOFTW","DATAPATTNS","COCHINSHIP","PARADEEP","CAPLIPOINT","TEJASNET","LLOYDSENGG","SHRIRAMFIN","WEBELSOLAR","RKFORGE","CHOLAHLDNG","EQUITASBNK"]
 
 
 # Tickers to track
@@ -252,29 +310,14 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
 
-# Wait until 9:15 AM
-now = datetime.now()
-target_time = now.replace(hour=14, minute=30, second=00, microsecond=0)
-
-# If it's already past 9:15 AM today, wait until 9:15 AM the next day
-if now > target_time:
-    target_time += timedelta(days=1)
-
-wait_seconds = (target_time - now).total_seconds()
-print(f"Waiting until {target_time.strftime('%H:%M:%S')} to start...")
-time.sleep(wait_seconds)
-
-# Start loop at 9:15 AM
-starttime = time.time()
-timeout = time.time() + 60 * 60 * 7  # 6 hours
-
+#################################################################################
+starttime=time.time()
+timeout = time.time() + 60*60*6  # 60 seconds times 360 meaning 6 hrs
 while time.time() <= timeout:
     try:
         main(capital)
-        time.sleep(300 - ((time.time() - starttime) % 300.0))  # Run every 5 minutes
+        time.sleep(300 - ((time.time() - starttime) % 300.0))
+
     except KeyboardInterrupt:
         print('\n\nKeyboard exception received. Exiting.')
-        exit()
-
-
-
+        exit()      

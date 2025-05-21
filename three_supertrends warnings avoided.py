@@ -112,17 +112,17 @@ def st_dir_refresh(ohlc, ticker):
         st_dir[ticker][2] = "green"
 
 
-def sl_price(ohlc):
-    """function to calculate stop loss based on supertrends"""
-    st = ohlc.iloc[-1, [-3, -2, -1]]
-    if st.min() > ohlc["close"][-1]:
-        sl = (0.6*st.sort_values(ascending=True)
-              [0]) + (0.4*st.sort_values(ascending=True)[1])
-    elif st.max() < ohlc["close"][-1]:
-        sl = (0.6*st.sort_values(ascending=False)
-              [0]) + (0.4*st.sort_values(ascending=False)[1])
+def sl_price(ohlc, buffer=1.0):
+    """Set SL 1x ATR below entry for buy, above for sell"""
+    atr_val = ohlc['ATR'].iloc[-1]
+    close = ohlc['close'].iloc[-1]
+    in_uptrend = ohlc['in_uptrend'].iloc[-1]
+    
+    if in_uptrend:
+        sl = close - (1.0 * atr_val) - buffer
     else:
-        sl = st.mean()
+        sl = close + (1.0 * atr_val) + buffer
+
     return round(sl, 1)
 
 
@@ -184,9 +184,9 @@ def main(capital):
         print("starting passthrough for.....", ticker)
         try:
             ohlc = fetchOHLC(ticker, "5minute", 4)
-            ohlc["st1"] = supertrend(ohlc, 7, 3)
+            ohlc["st1"] = supertrend(ohlc, 11, 2)
             # print(ticker, "str 1 =", ohlc["st1"])
-            ohlc["st2"] = supertrend(ohlc, 10, 3)
+            ohlc["st2"] = supertrend(ohlc, 11, 2)
             # print(ticker, "str 2 =", ohlc["st2"])
             ohlc["st3"] = supertrend(ohlc, 11, 2)
             # print(ticker, "str 3 =", ohlc["st3"])
@@ -218,6 +218,7 @@ def main(capital):
             print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
             print("API error for ticker :", ticker)
             print("Exception message:", str(e), ticker)
+            print(e)
             print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
             print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 
@@ -225,10 +226,14 @@ def main(capital):
 #############################################################################################################
 #############################################################################################################
 
-tickers = ["SAMHI","NEWGEN","MMTC","WHIRLPOOL","SONACOMS","VIPIND","NATCOPHARM","THANGAMAYL","VAIBHAVGBL","MARKSANS","ELECTCAST","SHILPAMED","BAJAJHIND","TRIVENI","THERMAX","SYNGENE","WAAREEENER","CANFINHOME","NAVA","KFINTECH","RALLIS"]
+tickers =  ['AARTIIND', 'LODHA', 'STYLEBAAZA', 'NIITMTS', 'SAILIFE', 'TIPSMUSIC', 'PANACEABIO', 'VMM', 'GUJGASLTD', 'HNGSNGBEES', 'ASAHIINDIA', 'MINDTECK', 'OMINFRAL', 'VBL', 'PNBHOUSING', 'CHAMBLFERT', 'CGCL', 'JSFB', 'SBFC', 'COFORGE', 'PGEL', 'JASH', 'PDSL', 'KAYNES', 'ORIENTELEC', 'PREMEXPLN', 'FOODSIN', 'GRAPHITE', 'SHK', 'NDTV', 'THEMISMED', 'APLLTD', 'ANUHPHR', 'KPEL', 'NUCLEUS', 'UDS', 'BHAGERIA', 'GOODLUCK', 'KIRLOSIND', 'SUVEN', 'PRECWIRE', 'GRINFRA', 'KPIGREEN', 'MODIRUBBER', 'AVANTEL', 'MAZDA', 'DELHIVERY', 'KANPRPLA', 'GILLANDERS', 'RPSGVENT', 'HINDWAREAP', 'INOXGREEN', '20MICRONS', 'SHANKARA', 'SIYSIL', 'DONEAR', 'REPRO', 'TIINDIA', 'GAIL', 'DABUR', 'TORNTPHARM', 'LAURUSLABS', 'VOLTAS', 'BIOCON', 'NTPC', 'HINDUNILVR', 'SUNPHARMA']
+
+
+
+
 
 #tickers to track - recommended to use max movers from previous day
-capital = 30000 #position size
+capital = 15000 #position size
 st_dir = {} #directory to store super trend status for each ticker
 for ticker in tickers:
     st_dir[ticker] = ["None","None","None"]    
@@ -245,7 +250,7 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 # Wait until 9:15 AM
 now = datetime.now()
-target_time = now.replace(hour=13, minute=45, second=0, microsecond=0)
+target_time = now.replace(hour=12, minute=15, second=0, microsecond=0)
 
 # If it's already past 9:15 AM today, wait until 9:15 AM the next day
 if now > target_time:

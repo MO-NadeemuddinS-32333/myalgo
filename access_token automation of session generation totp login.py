@@ -8,7 +8,7 @@ import time
 import os
 from pyotp import TOTP
 from selenium.webdriver.chrome.options import Options
-    
+import pandas as pd    
     
 cwd = os.chdir("C:\\Users\\USER\\OneDrive\\Desktop\\algo")
     
@@ -49,7 +49,9 @@ def autologin():
         driver.quit()
     
 autologin()
+
     
+
     
 #generating and storing access token - valid till 6 am the next day
 request_token = open("request_token.txt",'r').read()
@@ -58,3 +60,16 @@ kite = KiteConnect(api_key=key_secret[0])
 data = kite.generate_session(request_token, api_secret=key_secret[1])
 with open('access_token.txt', 'w') as file:
     file.write(data["access_token"])
+
+
+
+#get dump of all NSE instruments
+instrument_dump = kite.instruments("NSE")
+instrument_df = pd.DataFrame(instrument_dump)
+instrument_df.to_csv("NSE_Instruments.csv",index=False)
+instrument_df.head()
+instrument_df.head(15)
+instrument_df.columns
+ticker = instrument_df['tradingsymbol'].tolist()
+
+

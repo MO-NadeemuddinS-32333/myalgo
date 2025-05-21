@@ -1,9 +1,4 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Mar 27 01:49:03 2025
-
-@author: USER
-"""
+#pip install tabulate
 from kiteconnect import KiteConnect
 import os
 import datetime as dt
@@ -11,7 +6,10 @@ import pandas as pd
 import numpy as np
 import time
 import warnings
+import threading
 import concurrent.futures  # Import concurrent futures for threading
+from datetime import datetime, timedelta
+from tabulate import tabulate
 
 cwd = os.chdir("C:\\Users\\USER\\OneDrive\\Desktop\\algo")
 
@@ -93,22 +91,29 @@ def supertrend(DF, n, m):
             df.loc[ind[i], 'Strend'] = df['U-B'][i]
     return df['Strend']
 
+# Create a Lock object
+lock = threading.Lock()
+
 
 def st_dir_refresh(ohlc, ticker):
     """Function to check for supertrend reversal"""
+    
     global st_dir
-    if ohlc["st1"][-1] > ohlc["close"][-1] and ohlc["st1"][-2] < ohlc["close"][-2]:
-        st_dir[ticker][0] = "red"
-    if ohlc["st2"][-1] > ohlc["close"][-1] and ohlc["st2"][-2] < ohlc["close"][-2]:
-        st_dir[ticker][1] = "red"
-    if ohlc["st3"][-1] > ohlc["close"][-1] and ohlc["st3"][-2] < ohlc["close"][-2]:
-        st_dir[ticker][2] = "red"
-    if ohlc["st1"][-1] < ohlc["close"][-1] and ohlc["st1"][-2] > ohlc["close"][-2]:
-        st_dir[ticker][0] = "green"
-    if ohlc["st2"][-1] < ohlc["close"][-1] and ohlc["st2"][-2] > ohlc["close"][-2]:
-        st_dir[ticker][1] = "green"
-    if ohlc["st3"][-1] < ohlc["close"][-1] and ohlc["st3"][-2] > ohlc["close"][-2]:
-        st_dir[ticker][2] = "green"
+    
+    
+    with lock:
+        if ohlc["st1"][-1] > ohlc["close"][-1] and ohlc["st1"][-2] < ohlc["close"][-2]:
+            st_dir[ticker][0] = "red"
+        if ohlc["st2"][-1] > ohlc["close"][-1] and ohlc["st2"][-2] < ohlc["close"][-2]:
+            st_dir[ticker][1] = "red"
+        if ohlc["st3"][-1] > ohlc["close"][-1] and ohlc["st3"][-2] < ohlc["close"][-2]:
+            st_dir[ticker][2] = "red"
+        if ohlc["st1"][-1] < ohlc["close"][-1] and ohlc["st1"][-2] > ohlc["close"][-2]:
+            st_dir[ticker][0] = "green"
+        if ohlc["st2"][-1] < ohlc["close"][-1] and ohlc["st2"][-2] > ohlc["close"][-2]:
+            st_dir[ticker][1] = "green"
+        if ohlc["st3"][-1] < ohlc["close"][-1] and ohlc["st3"][-2] > ohlc["close"][-2]:
+            st_dir[ticker][2] = "green"
 
 
 def sl_price(ohlc):
@@ -138,6 +143,7 @@ def placeSLOrder(symbol, buy_sell, quantity, sl_price):
                      order_type=kite.ORDER_TYPE_MARKET,
                      product=kite.PRODUCT_MIS,
                      variety=kite.VARIETY_REGULAR)
+    time.sleep(0.5)
     kite.place_order(tradingsymbol=symbol,
                      exchange=kite.EXCHANGE_NSE,
                      transaction_type=t_type_sl,
@@ -160,7 +166,7 @@ def ModifyOrder(order_id, price):
 
 def process_ticker(ticker, capital, pos_df, ord_df):
     """Process individual ticker"""
-    print("________________________________________________________")
+    print("______________________________________________________")
     print("Starting passthrough for.....", ticker)
     try:
         ohlc = fetchOHLC(ticker, "5minute", 4)
@@ -169,29 +175,45 @@ def process_ticker(ticker, capital, pos_df, ord_df):
         ohlc["st3"] = supertrend(ohlc, 11, 2)
         st_dir_refresh(ohlc, ticker)
         quantity = int(capital / ohlc["close"][-1])
+        st3_signal = st_dir[ticker][2]  # Only using Supertrend 3
+
         if len(pos_df.columns) == 0:
-            if st_dir[ticker] == ["green", "green", "green"]:
+            if st3_signal == "green":
                 placeSLOrder(ticker, "buy", quantity, sl_price(ohlc))
-            if st_dir[ticker] == ["red", "red", "red"]:
+                print("order placed successfully", ticker)
+            elif st3_signal == "red":
                 placeSLOrder(ticker, "sell", quantity, sl_price(ohlc))
-        if len(pos_df.columns) != 0 and ticker not in pos_df["tradingsymbol"].tolist():
-            if st_dir[ticker] == ["green", "green", "green"]:
+                print("order placed successfully", ticker)
+
+        elif ticker not in pos_df["tradingsymbol"].tolist():
+            if st3_signal == "green":
                 placeSLOrder(ticker, "buy", quantity, sl_price(ohlc))
-            if st_dir[ticker] == ["red", "red", "red"]:
+                print("order placed successfully", ticker)
+            elif st3_signal == "red":
                 placeSLOrder(ticker, "sell", quantity, sl_price(ohlc))
-        if len(pos_df.columns) != 0 and ticker in pos_df["tradingsymbol"].tolist():
+                print("order placed successfully", ticker)
+
+        elif ticker in pos_df["tradingsymbol"].tolist():
             if pos_df[pos_df["tradingsymbol"] == ticker]["quantity"].values[0] == 0:
-                if st_dir[ticker] == ["green", "green", "green"]:
+                if st3_signal == "green":
                     placeSLOrder(ticker, "buy", quantity, sl_price(ohlc))
-                if st_dir[ticker] == ["red", "red", "red"]:
+                    print("order placed successfully", ticker)
+                elif st3_signal == "red":
                     placeSLOrder(ticker, "sell", quantity, sl_price(ohlc))
-            if pos_df[pos_df["tradingsymbol"] == ticker]["quantity"].values[0] != 0:
-                order_id = ord_df.loc[(ord_df['tradingsymbol'] == ticker) & (ord_df['status'].isin(["TRIGGER PENDING", "OPEN"]))]["order_id"].values[0]
+                    print("order placed successfully", ticker)
+            else:
+                order_id = ord_df.loc[
+                    (ord_df['tradingsymbol'] == ticker) & 
+                    (ord_df['status'].isin(["TRIGGER PENDING", "OPEN"]))
+                ]["order_id"].values[0]
                 ModifyOrder(order_id, sl_price(ohlc))
-    except:
-        print("********************************************************")
+                print("order modified successfully", ticker)
+
+    except Exception as e:
+        print("*****************************************************")
         print("API error for ticker :", ticker)
-        print("********************************************************")
+        print("Exception message:", str(e), ticker)
+        print("*****************************************************")
 
 
 def main(capital):
@@ -219,10 +241,11 @@ def main(capital):
         concurrent.futures.wait(futures)
 
 
-tickers = ["SIEMENS", "INDUSINDBK", "AMBUJACEM", "VBL", "NTPC", "RECLTD", "UNIONBANK", "BPCL"]
+
+tickers =  ['AARTIIND', 'LODHA', 'STYLEBAAZA', 'NIITMTS', 'SAILIFE', 'TIPSMUSIC', 'PANACEABIO', 'VMM', 'GUJGASLTD', 'HNGSNGBEES', 'ASAHIINDIA', 'MINDTECK', 'OMINFRAL', 'VBL', 'PNBHOUSING', 'CHAMBLFERT', 'CGCL', 'JSFB', 'SBFC', 'COFORGE', 'PGEL', 'JASH', 'PDSL', 'KAYNES', 'ORIENTELEC', 'PREMEXPLN', 'FOODSIN', 'GRAPHITE', 'SHK', 'NDTV', 'THEMISMED', 'APLLTD', 'ANUHPHR', 'KPEL', 'NUCLEUS', 'UDS', 'BHAGERIA', 'GOODLUCK', 'KIRLOSIND', 'SUVEN', 'PRECWIRE', 'GRINFRA', 'KPIGREEN', 'MODIRUBBER', 'AVANTEL', 'MAZDA', 'DELHIVERY', 'KANPRPLA', 'GILLANDERS', 'RPSGVENT', 'HINDWAREAP', 'INOXGREEN', '20MICRONS', 'SHANKARA', 'SIYSIL', 'DONEAR', 'REPRO', 'TIINDIA', 'GAIL', 'DABUR', 'TORNTPHARM', 'LAURUSLABS', 'VOLTAS', 'BIOCON', 'NTPC', 'HINDUNILVR', 'SUNPHARMA']
 
 # Tickers to track
-capital = 10000  # Position size
+capital = 15000  # Position size
 st_dir = {}  # Directory to store supertrend status for each ticker
 for ticker in tickers:
     st_dir[ticker] = ["None", "None", "None"]
@@ -230,12 +253,55 @@ for ticker in tickers:
 # Suppress FutureWarnings globally
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
-starttime = time.time()
-timeout = time.time() + 60 * 60 * 7  # 60 seconds * 360 meaning 6 hrs
+
+
+# Wait until 9:15 AM
+now = datetime.now()
+target_time = now.replace(hour=10, minute=26, second=00, microsecond=0)
+
+# If it's already past 9:15 AM today, wait until 9:15 AM the next day
+if now > target_time:
+    target_time += timedelta(days=1)
+
+wait_seconds = (target_time - now).total_seconds()
+print(f"Waiting until {target_time.strftime('%H:%M:%S')} to start...")
+time.sleep(wait_seconds)
+
+
+
+starttime=time.time()
+timeout = time.time() + 60*60*6  # 60 seconds times 360 meaning 6 hrs
 while time.time() <= timeout:
     try:
         main(capital)
         time.sleep(300 - ((time.time() - starttime) % 300.0))
+
+
     except KeyboardInterrupt:
         print('\n\nKeyboard exception received. Exiting.')
-        exit()
+        exit()        
+
+
+
+
+
+#################################################################################
+starttime=time.time()
+timeout = time.time() + 60*60*6  # 60 seconds times 360 meaning 6 hrs
+while time.time() <= timeout:
+    try:
+        main(capital)
+        print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+        table_data = []
+        for ticker, directions in st_dir.items():
+           table_data.append([ticker] + directions)
+
+           headers = ["Ticker", "ST1", "ST2", "ST3"]
+           print(tabulate(table_data, headers=headers, tablefmt="grid"))
+
+           print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+           time.sleep(300 - ((time.time() - starttime) % 300.0))
+
+    except KeyboardInterrupt:
+        print('\n\nKeyboard exception received. Exiting.')
+        exit()      
