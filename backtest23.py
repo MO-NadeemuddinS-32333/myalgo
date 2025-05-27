@@ -83,11 +83,11 @@ def supertrend(DF, n, m, label):
 
 
 def generate_signals(df):
-    df['Buy'] = ((df['ST_DIR_9_2'] == 1) & 
+    df['Buy'] = ((df['ST_DIR_7_3'] == 1) & 
                  (df['ST_DIR_10_3'] == 1) & 
                  (df['ST_DIR_11_2'] == 1))
     
-    df['Sell'] = ((df['ST_DIR_9_2'] == -1) & 
+    df['Sell'] = ((df['ST_DIR_7_3'] == -1) & 
                   (df['ST_DIR_10_3'] == -1) & 
                   (df['ST_DIR_11_2'] == -1))
     return df
@@ -146,10 +146,7 @@ def calculate_kpis(trades, initial_capital, final_value):
     }
 
 # --- Run Backtest ---
-symbols = ["BEL", "SOLARINDS", "SIEMENS", "POLICYBZR", "ABCAPITAL", "ANGELONE", "HAL", "MUTHOOTFIN", "CHOLAFIN", "DLF", "PEL", "SUPREMEIND", "INDHOTEL", "ABB", "BIOCON", "PHOENIXLTD", "VOLTAS", "ALKEM", "LODHA", "BANKBARODA", "HINDCOPPER", "CIPLA", "OBEROIRLTY", "HINDPETRO", "TATACOMM", "ABINFRA", "ECOSMOBLTY", "JKTYRE", "RAMRAT", "QPOWER", "BANCOINDIA", "DREDGECORP", "HONDAPOWER", "KRITI", "TOKYOPLAST", "BAJEL", "APOLLO", "PGIL", "HLEGLAS", "GODIGIT", "GLAXO", "KRISHANA", "THOMASCOOK", "TATVA", "MASFIN", "RISHABH", "BOROSCI", "CAPLIPOINT", "ROTO", "ESTER", "TBOTEK", "GABRIEL", "SARLAPOLY", "DAMCAPITAL", "ENDURANCE", "MOTILALOFS", "MARKSANS", "SEQUENT", "LTFOODS", "CARYSIL", "KAPSTON", "SHRIPISTON"]
-
-
-["360ONE", "3MINDIA", "ABB", "ACC", "ACMESOLAR", "AIAENG", "APLAPOLLO", "AUBANK", "AWL", "AADHARHFC",
+symbols =  ["360ONE", "3MINDIA", "ABB", "ACC", "ACMESOLAR", "AIAENG", "APLAPOLLO", "AUBANK", "AWL", "AADHARHFC",
 "AARTIIND", "AAVAS", "ABBOTINDIA", "ACE", "ADANIENSOL", "ADANIENT", "ADANIGREEN", "ADANIPORTS", "ADANIPOWER", "ATGL",
 "ABCAPITAL", "ABFRL", "ABREL", "ABSLAMC", "AEGISLOG", "AFCONS", "AFFLE", "AJANTPHARM", "AKUMS", "APLLTD",
 "ALIVUS", "ALKEM", "ALKYLAMINE", "ALOKINDS", "ARE&M", "AMBER", "AMBUJACEM", "ANANDRATHI", "ANANTRAJ", "ANGELONE",
@@ -207,7 +204,7 @@ for sym in symbols:
     print(f"\n🔍 Backtesting {sym}")
     try:
         df = fetch_data(sym).copy()
-        df = supertrend(df, 9, 2, "9_2")
+        df = supertrend(df, 7, 3, "7_3")
         df = supertrend(df, 10, 3, "10_3")
         df = supertrend(df, 11, 2, "11_2")
         df = generate_signals(df)
@@ -226,11 +223,30 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
         
         
-        
 summary_df = pd.DataFrame(results)
 summary_df = summary_df.sort_values("Return (%)", ascending=False)
-#print(summary_df)
+print(summary_df)
 summary_df.to_csv("backtest_summary.csv", index=False)
+
+       
+# Convert relevant columns to numeric in case they're strings
+summary_df['Win Rate (%)'] = pd.to_numeric(summary_df['Win Rate (%)'], errors='coerce')
+summary_df['Return (%)'] = pd.to_numeric(summary_df['Return (%)'], errors='coerce')
+summary_df['Net PnL'] = pd.to_numeric(summary_df['Net PnL'], errors='coerce')
+
+filtered_df = summary_df[
+    (summary_df['Win Rate (%)'] > 30) &
+    (summary_df['Return (%)'] > 30) &
+    (summary_df['Net PnL'] > 10000)
+]
+
+print(filtered_df)
+
+
+symbol_list = filtered_df['Symbol'].tolist()
+print(symbol_list)
+
+
 
 # --- Output Results ---
 for k, v in kpis.items():

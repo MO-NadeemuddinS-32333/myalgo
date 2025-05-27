@@ -6,11 +6,11 @@ from kiteconnect import KiteConnect
 import os
 
 # === Strategy Configuration ===
-ENTRY_PRICE = 300
-STOP_LOSS = 400
-TARGET_PRICE = 210
+ENTRY_PRICE = 250
+STOP_LOSS = 350
+TARGET_PRICE = 140
 CHECK_INTERVAL = 2  # seconds
-ENTRY_TIME = "12:00"
+ENTRY_TIME = "09:35"
 SYMBOL = "BANKNIFTY"
 lot_size = 30
 PAPER_TRADE = True  # Set to False to go live
